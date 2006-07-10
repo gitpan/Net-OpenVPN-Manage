@@ -10,3 +10,4 @@ provides:
   Net::OpenVPN::Manage:
     file: lib/Net/OpenVPN/Manage.pm
     version: 0.01
+    

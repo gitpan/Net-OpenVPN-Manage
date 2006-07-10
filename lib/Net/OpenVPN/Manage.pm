@@ -4,16 +4,15 @@ use strict;
 use Net::Telnet;
 use vars qw( $VERSION );
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
-sub new {
-#Net::OpenVPN::Manage->new({ 
+# $vpn = Net::OpenVPN::Manage->new({ 
 #                    host => 'hostname.domain.com', 
 #                    port => '7000' 
 #                    password => 'password',
 #                    timeout => 20
 #                 });
-
+sub new {
   my $class = shift;
   my $self  = shift;
 
@@ -22,10 +21,11 @@ sub new {
   	return 0;
   }
   
-  bless ($self, $class);
+  bless  ($self, $class);
   return ($self);
 }
 
+# $vpn->auth_retry($arg);
 sub auth_retry {
   my $self = shift;
   my $arg  = shift;
@@ -38,6 +38,7 @@ sub auth_retry {
   return $telnet->last_prompt();
 }
 
+# $result = $vpn->echo($arg);
 sub echo {
   my $self = shift;
   my $arg  = shift;
@@ -54,7 +55,8 @@ sub echo {
   }
 }
 
-sub help {
+# $help_text = $vpn->help();
+sub help() {
   my $self = shift;
   my $telnet = $self->{objects}{_telnet_};  
   my @output = $telnet->cmd(String => 'help', Prompt => '/(END.*\n|ERROR:.*\n)/');
@@ -65,6 +67,7 @@ sub help {
   return join('', @output);
 }
 
+# $result = $vpn->hold($arg);
 sub hold {
   my $self = shift;
   my $arg  = shift;
@@ -77,7 +80,8 @@ sub hold {
   return $telnet->last_prompt();
 }
 
-sub kill {
+# $result = $vpn->kill($arg);
+sub kill($) {
   my $self = shift;
   my $arg  = shift;
   my $telnet = $self->{objects}{_telnet_};
@@ -89,7 +93,8 @@ sub kill {
   return $telnet->last_prompt();
 }
 
-sub log {
+# $result = $vpn->log($arg);
+sub log($) {
   my $self = shift;
   my $arg  = shift;
   my $telnet = $self->{objects}{_telnet_};
@@ -99,12 +104,13 @@ sub log {
     return 0;
   }
   if ($telnet->last_prompt =~ /END.*\n/){
-    return join('', @output);
+    return \@output;
   } else {
     return $telnet->last_prompt();
   }
 }
 
+# $result = $vpn->mute();
 sub mute {
   my $self = shift;
   my $arg  = shift;
@@ -117,11 +123,22 @@ sub mute {
   return $telnet->last_prompt();
 }
 
-sub password {
-  return "password: command not implemented.\n";
+# Not implemented
+sub net {
+  my $self = shift;
+  $self->{error_msg} = "net: command not implemented.\n";
+  return 0;
 }
 
-sub signal {
+# Not implemented
+sub password {
+  my $self = shift;
+  $self->{error_msg} = "password: command not implemented.\n";
+  return 0;
+}
+
+# $result = $vpn->signal('SIGHUP');
+sub signal($) {
   my $self = shift;
   my $arg  = shift;
   my $telnet = $self->{objects}{_telnet_};
@@ -133,6 +150,7 @@ sub signal {
   return $telnet->last_prompt();
 }
 
+# $array_ref = $vpn->state('all');
 sub state {
   my $self = shift;
   my $arg  = shift;
@@ -143,12 +161,13 @@ sub state {
     return 0;
   }
   if ($telnet->last_prompt =~ /END.*\n/){
-    return join('', @output);
+    return \@output;
   } else {
     return $telnet->last_prompt();
   }
 }
 
+# $array_ref = $vpn->status(2);
 sub status {
   my $self = shift;
   my $arg  = shift;
@@ -159,20 +178,60 @@ sub status {
     return 0;
   }
   if ($telnet->last_prompt =~ /END.*\n/){
-    return join('', @output);
+    return \@output;
   } else {
     return $telnet->last_prompt();
   }
 }
 
+# $hash_ref = $vpn->status_ref();
+sub status_ref() {
+  my $ref;
+  my $self = shift;
+  my $arg  = 2;
+  my $telnet = $self->{objects}{_telnet_};
+  my @output = $telnet->cmd(String => 'status '.$arg, Prompt => '/(SUCCESS:.*\n|ERROR:.*\n|END.*\n)/');
+  unless ($telnet->last_prompt =~ /(SUCCESS:.*|END.*\n)/){
+    $self->{error_msg} = $telnet->last_prompt();
+    return 0;
+  }
+  unless ($telnet->last_prompt =~ /END.*\n/){
+    return $telnet->last_prompt();
+  }
+  foreach my $ln ( @output ){
+    if (( $ln eq '' ) || ( $ln =~ /^\s*$/ )){ 
+      next;
+    } elsif (( $ln =~ s/^(ROUTING_TABLE),// ) || ( $ln =~ s/^(CLIENT_LIST),// )){
+      my @a = split ',', $ln;
+      push @{$ref->{$1}}, \@a;
+    } elsif ( $ln =~ s/^(HEADER),([\w\_]+),// ){
+      push @{$ref->{$1}{$2}}, split(',', $ln);
+    } elsif ( $ln =~ s/^(TITLE),// ){
+      $ref->{$1}=$ln;
+    } elsif ( $ln =~ s/^(TIME),// ){
+      $ref->{$1}=$ln;
+    } elsif ( $ln =~ s/^(GLOBAL_STATS),// ){
+      $ref->{$1}=$ln;
+    } 
+  }
+  return $ref;
+}
+
+# Not implemented
 sub test {
-  return "test: command not implemented.\n";
+  my $self = shift;
+  $self->{error_msg} = "test: command not implemented.\n";
+  return 0;
 }
 
+# Not implemented
 sub username {
-  return "username: command not implemented.\n";
+  my $self = shift;
+  $self->{error_msg} = "username: command not implemented.\n";
+  return 0;
 }
 
+# $result = $vpn->verb();
 sub verb {
   my $self = shift;
   my $arg  = shift;
@@ -185,7 +244,8 @@ sub verb {
   return $telnet->last_prompt();
 }
 
-sub version {
+# $version = $vpn->version();
+sub version() {
   my $self = shift;
   my $telnet = $self->{objects}{_telnet_};
   my @output = $telnet->cmd(String => 'version', Prompt => '/(END.*\n|ERROR:.*\n)/');
@@ -196,7 +256,8 @@ sub version {
   return join('', @output);
 }
 
-sub connect {
+# $boolean = $vpn->connect();
+sub connect() {
   my $self = shift;
   my $telnet = Net::Telnet->new(Telnetmode => 0);
   
@@ -248,13 +309,32 @@ __END__
 
 Net::OpenVPN::Manage - Manage an OpenVPN process via it's management port
 
+Version 0.02
+
+=head1 DESCRIPTION
+
+This module connects to the OpenVPN management interface, executes 
+commands on the interface and returns the results or errors that result.
+
+=head1 CHANGES
+
+ 0.02: 
+   1: Added the 'status_ref' method so you don't have to parse out the 
+      values from the scalar data returned from the 'status' method 
+      yourself.
+   2: Changed the 'status', 'log' and 'state' methods to return array 
+      references instead of multi-line scalars when multi-line data 
+      is returned.
+   3: Made several changes to the POD text to show examples and data 
+      types returned.
+
 =head1 SYNOPSIS
 
   use Net::OpenVPN::Manage;
 
   my $vpn = Net::OpenVPN::Manage->new({ 
   		host=>'127.0.0.1', 
-  		port=>'6000', 
+  		port=>'1195', 
   		password=>'password',
   		timeout=>10
   });
@@ -277,11 +357,6 @@ Net::OpenVPN::Manage - Manage an OpenVPN process via it's management port
     print $status."\n";
   }
 
-=head1 DESCRIPTION
-
-This module connects to the OpenVPN management interface, executes 
-commands on the interface and returns the results or errors that result.
-
 =head1 USING THE MODULE
 
 All the methods in this module will return 0, or boolean false if there is any error.
@@ -300,7 +375,7 @@ change the network timeout value as well.
 
 =item $vpn->connect();
 
-The connect method has no arguments passed to it. This method connects to the remote host at the port specified, 
+The connect method has no arguments passed to it. This method opens the connection to the remote host at the port specified, 
 in the event that the host or port provided to the object are incorrect; or if there is already another network
 session to this port (OpenVPN only supports a single management session at a time) this command will timeout.
 
@@ -312,7 +387,8 @@ OpenVPN documentation (http://www.openvpn.net) or at least the management help s
 
 Changes the Auth failure retry mode. Arguments are: none, interact, or nointeract.
 
-$vpn->auth_retry('none'); # Sets auth-retry mode to 'none'
+	# Sets auth-retry mode to 'none'
+	$vpn->auth_retry('none'); 
 
 
 =item $vpn->echo( $arg );
@@ -320,40 +396,54 @@ $vpn->auth_retry('none'); # Sets auth-retry mode to 'none'
 Returns messages from the echo buffer or changes echo state. Arguments are: on, off, all, or a integer designating number of lines to be returned.
 The on and off arguments are really of no use here since it changes the state of the realtime management console echo messages and our session only connected for a brief time.
 
-$vpn->echo('all'); # Returns entire echo buffer
+	# Returns entire echo buffer
+	$vpn->echo('all'); 
 
 =item $vpn->help();
 
-Returns the help screen for the management command usage.
+Returns the help screen for the management command usage as a multiline string.
 
-print $vpn->help(); # Prints the help screen to STDOUT
+	# Prints the help screen to STDOUT
+	print $vpn->help(); 
 
 =item $vpn->hold( $arg );
 
 If called without an argument it returns the current hold state; if called with an argument of: on, off, or release it changes the current hold state.
 
-$vpn->hold('release'); # Releases the hold state on the OpenVPN process.
+	# Releases the hold state on the OpenVPN process.
+	$vpn->hold('release'); 
+	
+	# Prints current hold state.
+	print $vpn->hold();
 
 =item $vpn->kill( $arg );
 
 Kills the VPN connection referenced. The argument may be either the common name of the connection or the real client IP:Port address.
 
-$vpn->kill('jsmith'); # kills the connection with the common name of 'jsmith'
+	# kills the connection with the common name of 'jsmith'
+	$vpn->kill('jsmith');
 
-$vpn->kill('63.73.83.93:17023'); # kills the connection where the client is connecting from: '63.73.83.93:17023'
+	# kills the connection where the client is connecting from: '63.73.83.93:17023'
+	$vpn->kill('63.73.83.93:17023'); 
 
 =item $vpn->log( $arg );
 
 Returns messages from the log buffer or changes realtime log state. Arguments are: on, off, all, or an integer designating number of lines to be returned.
 The on and off arguments are really of no use here since it changes the state of the realtime management console log messages and our session only connected for a brief time.
+If logged records are requested, they are returned as an array reference - otherwise a scalar value is returned.
 
-print $vpn->log('all'); # prints the entire log buffer.
+	# prints the entire log buffer.
+	print @{$vpn->log('all')}; 
+	
+	# turns off logging.
+	my $result = $vpn->log('off');
 
 =item $vpn->mute( $arg );
 
 If no argument is given it will show the log mute level for recurring log messages; if called with an argument it will change the log mute level to the value given.
 
-$vpn->mute( 10 ); # Sets the log mute level to 10.
+	# Sets the log mute level to 10.
+	$vpn->mute(10); 
 
 =item $vpn->net();
 
@@ -370,13 +460,68 @@ If the daemon is running under a non root or Administrator|System account it wil
 itself after a reset since it won't have the priveledges required to reopen the network interfaces.
 See the OpenVPN HOWTO and the OpenVPN Management Interface documentation.
 
-$vpn->signal('SIGHUP'); # Sends SIGHUP signal to the process.
+	# Sends SIGHUP signal to the process.
+	$vpn->signal('SIGHUP'); 
+
+=item $vpn->state();
+
+Either turns on or off real time state notification if called with arguments of 'on' or 'off'; or returns current connection state information as an array reference if called without an argument, 'all', or some integer value that requests some X number of entries.
+
+	# Print all connection states
+	print @{$vpn->state()};
 
 =item $vpn->status( $arg );
 
-Returns the active connection status information where the optional argument (either 1 or 2 at this time) specifies the output format version.
+Returns the active connections status information as a multiline scalar where the optional argument (either 1 or 2 at this time) specifies the output format version. 
+If called without an argument, it will return the data in the format defaulted by the daemon.
 
-print $vpn->status(2); # Print the connection status page using the version 2 format.
+	# Print the connection status page using the version 2 format.
+	print $vpn->status(2); 
+
+=item $vpn->status_ref( );
+
+Returns the active connections status information as a reference to a hash of arrays.
+
+C<< my $r = $vpn->status_ref(); >>
+
+C<< $r->{TITLE} >> is a scalar showing the status TITLE.
+
+C<< $r->{TIME} >> is a scalar showing the status TIME.
+
+C<< $r->{GLOBAL_STATS} >> is a scalar showing the GLOBAL_STATS line.
+
+C<< $r->{HEADER}{CLIENT_LIST} >> is an array of the CLIENT_LIST column headers.
+
+C<< $r->{HEADER}{ROUTING_TABLE} >> is an array of the ROUTING_TABLE column headers.
+
+C<< $r->{CLIENT_LIST} >> is an array of arrays containing connection data for each active connection.
+
+ [ 
+  ["John Doe", "1.2.3.4:5678", "4.3.2.1", "67264", "87264", "Fri Jul  7 14:20:51 2006", "1152300051"], >
+  ["Jane Doe", "2.3.4.5:6789", "5.4.3.2", "12347101", "19043721", "Tue Jul  3 12:10:05 2006", "1150000050"] >
+  ...
+ ]
+ 
+C<< $r->{ROUTING_TABLE} >> is an array of arrays containing ROUTING_TABLE data for each active connection.
+This structure is identical to that in $r->{CLIENT_LIST}, with an array containing an array of values for each connection.
+
+ [
+  ["4.3.2.1", "John Doe" ,"1.2.3.4:5678", "Fri Jul  7 14:41:35 2006", "1152301295"],
+  ["5.4.3.2", "Jane Doe" ,"2.3.4.5:6789", "Tue Jul  3 12:10:05 2006", "1150000050"]
+  ...
+ ]
+	
+	 my $r = $vpn->status_ref(); 
+	 foreach my $array_ref ( @{$r->{CLIENT_LIST}} ){ 
+		print "Common Name: $$array_ref[0], bytes sent: $$array_ref[3], bytes recvd: $$array_ref[4]\n"; 
+	 } 
+
+	-- or to use the column heading ref --
+
+	 my $r = $vpn->status_ref(); 
+	 foreach my $array_ref ( @{$r->{CLIENT_LIST}} ){ 
+	 	print "$r->{HEADER}{CLIENT_LIST}[0]: $$array_ref[0], $r->{HEADER}{CLIENT_LIST}[3]: $$array_ref[3], $r->{HEADER}{CLIENT_LIST}[4]: $$array_ref[4]"; 
+	 } 
 
 =item $vpn->test();
 
@@ -390,19 +535,52 @@ This method has not been implemented. Only of use when the management session is
 
 If called without an argument it returns the log verbosity level; if called with an argument (any valid log level) it changes the verbosity setting to the given value.
 
-$vpn->verb('1'); # Change verbosity level to 1.
+	# Change verbosity level to 1.
+	$vpn->verb('1'); 
 
 =item $vpn->version();
 
 Returns a string showing the processes version information as well as the management interface's version.
 
-print $vpn->version(); # Prints the version information to STDOUT.
+	# Prints the version information to STDOUT.
+	print $vpn->version(); 
 
 =back
 
-=head1 VERSION
+=head1 COOKBOOK
 
-0.01
+Example of CGI script that shows connected clients. Rough and definitely not pretty, just an example...
+Keep in mind that to extend this, you could have hyperlinks that callback and can disconnect sessions, print log entries, etc.
+
+	use strict;
+	use CGI;
+	use Net::OpenVPN::Manage;
+
+	my $cgi=CGI->new();
+	print $cgi->header();
+
+	my $vpn=Net::OpenVPN::Manage->new({host=>'openvpn.domain.com', port=>'1195', password=>'password', timeout=>'5'});
+	unless ($vpn->connect()){
+		print $vpn->{error_msg}."\n\n";
+		exit 0;
+	}
+
+	my $r=$vpn->status_ref();
+	print qq|<table border="1"><tr>|;
+	foreach my $heading ( @{$r->{HEADER}{CLIENT_LIST}} ){
+		print qq|<th>$heading</th>|;
+	}
+	
+	print qq|</tr>|;
+	foreach my $aref ( @{$r->{CLIENT_LIST}} ){
+		print qq|<tr>|;
+		foreach my $r ( @{$aref} ){
+			print qq|<td>$r</td>|;
+		}
+		print qq|</tr>|;
+	}
+	
+	print qq|</table>|;  
 
 =head1 AUTHOR
 
