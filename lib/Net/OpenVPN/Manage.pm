@@ -93,8 +93,8 @@ sub kill($) {
   return $telnet->last_prompt();
 }
 
-# $hash_ref = $vpn->load_stats();
-sub load_stats {
+# $hash_ref = $vpn->load_stats_ref();
+sub load_stats_ref {
   my $href;
   my $self = shift;
   my $telnet = $self->{objects}{_telnet_};
