@@ -93,6 +93,18 @@ sub kill($) {
   return $telnet->last_prompt();
 }
 
+# $result =  $vpn->load_stats();
+sub load_stats {
+  my $self = shift;
+  my $telnet = $self->{objects}{_telnet_};
+  $telnet->cmd(String => 'load-stats', Prompt => '/(SUCCESS:.*\n|ERROR:.*\n)/');
+  unless ($telnet->last_prompt =~ /SUCCESS:.*/){
+    $self->{error_msg} = $telnet->last_prompt();
+    return 0;
+  }
+  return $telnet->last_prompt();
+}
+
 # $hash_ref = $vpn->load_stats_ref();
 sub load_stats_ref {
   my $href;
