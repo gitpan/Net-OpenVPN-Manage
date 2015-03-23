@@ -24,7 +24,7 @@ Commands: auth-retry, echo, help, hold, kill, log, mute, signal, state, verb, ve
 END_HELP
 ;
 exit 1;
-}		
+}
 
 my $vpn = Net::OpenVPN::Manage->new({host=>$host, port=>$port, password=>$password, timeout=>5});
 unless ($vpn->connect()){
@@ -43,6 +43,8 @@ if ( $cmd eq 'auth-retry' ){
   $return = $vpn->hold($arg);
 } elsif ( $cmd eq 'kill' ){
   $return = $vpn->kill($arg);
+} elsif ( $cmd eq 'load-stats') {
+  $return = $vpn->load_stats();
 } elsif ( $cmd eq 'log' ){
   $return = $vpn->log($arg);
 } elsif ( $cmd eq 'mute' ){
