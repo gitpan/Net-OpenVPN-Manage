@@ -19,7 +19,7 @@ print <<END_HELP
 
 Usage: manage.pl <hostname/IP> <port> <password> <command> [argument]
 
-Commands: auth-retry, echo, help, hold, kill, log, mute, signal, state, verb, version
+Commands: auth-retry, echo, help, hold, kill, load-stats, log, mute, signal, state, verb, version
 
 END_HELP
 ;
